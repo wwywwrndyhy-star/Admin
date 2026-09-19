@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIBE - لوحة التحكم الإدارية</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #0a0b10;
+      --bg-card: rgba(20, 22, 34, 0.85);
+      --border-card: rgba(138, 43, 226, 0.3);
+      --accent-violet: #8A2BE2;
+      --accent-cyan: #00F0FF;
+      --text-main: #FFFFFF;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+    h2, h3 { color: var(--accent-cyan); margin-bottom: 15px; }
+    input, button { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--border-card); font-size: 1rem; }
+    input { background: #000; color: #fff; }
+    button { background: linear-gradient(135deg, var(--accent-violet), #DA70D6); color: #fff; font-weight: bold; cursor: pointer; border: none; }
+    .user-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1 style="text-align: center; margin-bottom: 20px; color: var(--accent-violet);">لوحة تحكم VIBE ⚙️</h1>
+
+    <!-- 1. Daily Question -->
+    <div class="card">
+      <h3>1. إضافة / تحديث التحدي اليومي</h3>
+      <input type="text" id="dq-text" placeholder="نص السؤال اليومي">
+      <input type="text" id="dq-a1" placeholder="الإجابة الصحيحة">
+      <input type="text" id="dq-a2" placeholder="إجابة خاطئة 1">
+      <input type="text" id="dq-a3" placeholder="إجابة خاطئة 2">
+      <input type="text" id="dq-a4" placeholder="إجابة خاطئة 3">
+      <button onclick="saveDailyQuestion()">نشر السؤال اليومي</button>
+    </div>
+
+    <!-- 2. Arena Question -->
+    <div class="card">
+      <h3>2. إضافة سؤال لساحة الـ 1v1</h3>
+      <input type="text" id="aq-text" placeholder="نص سؤال المواجهة">
+      <input type="text" id="aq-a1" placeholder="الإجابة الصحيحة">
+      <input type="text" id="aq-a2" placeholder="إجابة خاطئة 1">
+      <input type="text" id="aq-a3" placeholder="إجابة خاطئة 2">
+      <button onclick="addArenaQuestion()">إضافة لبنك المواجهات</button>
+    </div>
+
+    <!-- 3. Broadcast System -->
+    <div class="card">
+      <h3>3. إرسال إشعار عام في الشات</h3>
+      <input type="text" id="bc-text" placeholder="اكتب التنبيه أو الإعلان...">
+      <button onclick="sendBroadcast()" style="background: #00E676; color: #000;">إرسال الإعلان</button>
+    </div>
+
+    <!-- 4. Users List & Control -->
+    <div class="card">
+      <h3>4. قائمة المستخدمين والتحكم بالنواحي (XP)</h3>
+      <div id="users-list">جاري تحميل اللاعبين...</div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBi1jUXrq7DMUbHFSb2JcNF93P5g0HJl9E",
+      authDomain: "vibe-783f3.firebaseapp.com",
+      projectId: "vibe-783f3",
+      databaseURL: "https://vibe-783f3-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function saveDailyQuestion() {
+      const q = document.getElementById('dq-text').value;
+      const a1 = document.getElementById('dq-a1').value;
+      const a2 = document.getElementById('dq-a2').value;
+      const a3 = document.getElementById('dq-a3').value;
+      const a4 = document.getElementById('dq-a4').value;
+      
+      if(!q || !a1) return alert('أدخل السؤال والإجابة الصحيحة');
+      db.ref('questions/daily').set({ q, options: [a1,a2,a3,a4].filter(x=>x), correct: a1 });
+      alert('تم نشر التحدي اليومي بنجاح!');
+    }
+
+    function addArenaQuestion() {
+      const q = document.getElementById('aq-text').value;
+      const a1 = document.getElementById('aq-a1').value;
+      const a2 = document.getElementById('aq-a2').value;
+      const a3 = document.getElementById('aq-a3').value;
+      
+      if(!q || !a1) return alert('أدخل السؤال والإجابة الصحيحة');
+      db.ref('questions/arena').push({ q, options: [a1,a2,a3].filter(x=>x), correct: a1 });
+      alert('تمت إضافة السؤال لبنك المواجهات!');
+    }
+
+    function sendBroadcast() {
+      const txt = document.getElementById('bc-text').value;
+      if(!txt) return;
+      db.ref('chat').push({
+        uid: 'admin', name: '📢 إشعار الإدارة', text: txt, avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=admin', time: Date.now()
+      });
+      alert('تم إرسال الإعلان في الشات العام!');
+    }
+
+    // Load Users
+    db.ref('users').on('value', snap => {
+      const list = document.getElementById('users-list');
+      list.innerHTML = '';
+      snap.forEach(c => {
+        const u = c.val();
+        list.innerHTML += `
+          <div class="user-row">
+            <div>
+              <strong>${u.name || 'بدون اسم'}</strong> (${u.xp || 0} XP)
+            </div>
+            <button style="width:auto; padding:5px 10px; margin:0;" onclick="addXP('${c.key}', 100)">+100 XP</button>
+          </div>
+        `;
+      });
+    });
+
+    function addXP(uid, val) {
+      db.ref(`users/${uid}/xp`).transaction(x => (x||0) + val);
+    }
+  </script>
+</body>
+</html>
