@@ -3,135 +3,397 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VIBE - لوحة التحكم الإدارية</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+  <title>VIBE Unite - لوحة تحكم الأدمن 👑</title>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
   <style>
     :root {
-      --bg-dark: #0a0b10;
-      --bg-card: rgba(20, 22, 34, 0.85);
-      --border-card: rgba(138, 43, 226, 0.3);
-      --accent-violet: #8A2BE2;
+      --bg-dark: #07080b; 
+      --glass-card: rgba(15, 20, 35, 0.85);
+      --glass-border: rgba(0, 240, 255, 0.25); 
       --accent-cyan: #00F0FF;
-      --text-main: #FFFFFF;
+      --accent-violet: #8A2BE2; 
+      --accent-red: #ff4d4d;
+      --text-main: #FFFFFF; 
+      --text-muted: #8E95B5;
+      --gold-glow: #FFD700;
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-    body { background: var(--bg-dark); color: var(--text-main); padding: 20px; }
-    .container { max-width: 600px; margin: 0 auto; }
-    .card { background: var(--bg-card); border: 1px solid var(--border-card); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
-    h2, h3 { color: var(--accent-cyan); margin-bottom: 15px; }
-    input, button { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid var(--border-card); font-size: 1rem; }
-    input { background: #000; color: #fff; }
-    button { background: linear-gradient(135deg, var(--accent-violet), #DA70D6); color: #fff; font-weight: bold; cursor: pointer; border: none; }
-    .user-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; outline: none; }
+    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding: 20px; }
+
+    /* Ultra Glass UI */
+    .glass { background: var(--glass-card); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 18px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5); padding: 20px; margin-bottom: 20px; }
+    .btn { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet)); color: #000; border: none; border-radius: 10px; padding: 8px 16px; font-weight: 900; cursor: pointer; transition: 0.2s ease; text-align: center; }
+    .btn:active { transform: scale(0.95); }
+    .btn.outline { background: transparent; border: 1px solid var(--accent-cyan); color: var(--accent-cyan); }
+    .btn.danger { background: linear-gradient(135deg, #ff4b4b, #b30000); color: #fff; }
+    .btn.gold { background: linear-gradient(135deg, #FFD700, #FF8C00); color: #000; }
+    .input-glass { background: rgba(0,0,0,0.6); border: 1px solid var(--glass-border); border-radius: 10px; padding: 10px 14px; color: #fff; font-size: 14px; }
+
+    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 15px; margin-bottom: 20px; }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+    .stat-card { text-align: center; border-color: rgba(255,255,255,0.1); }
+    .stat-num { font-size: 2.2rem; font-weight: 900; color: var(--accent-cyan); margin-top: 5px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+    .tab-btn { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-muted); padding: 10px 20px; border-radius: 12px; cursor: pointer; font-weight: bold; white-space: nowrap; }
+    .tab-btn.active { background: var(--accent-cyan); color: #000; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Tables & Lists */
+    .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; text-align: right; }
+    .data-table th, .data-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 0.9rem; }
+    .data-table th { color: var(--accent-cyan); background: rgba(0,0,0,0.3); }
+
+    .avatar-xs { width: 32px; height: 32px; border-radius: 50%; background-size: cover; background-position: center; display: inline-block; vertical-align: middle; margin-left: 8px; }
+
+    #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--accent-cyan); color: #000; padding: 10px 24px; border-radius: 30px; font-weight: 900; z-index: 9999; display: none; box-shadow: 0 0 15px var(--accent-cyan); }
   </style>
 </head>
 <body>
 
-  <div class="container">
-    <h1 style="text-align: center; margin-bottom: 20px; color: var(--accent-violet);">لوحة تحكم VIBE ⚙️</h1>
+  <div id="toast">تنبيه</div>
 
-    <!-- 1. Daily Question -->
-    <div class="card">
-      <h3>1. إضافة / تحديث التحدي اليومي</h3>
-      <input type="text" id="dq-text" placeholder="نص السؤال اليومي">
-      <input type="text" id="dq-a1" placeholder="الإجابة الصحيحة">
-      <input type="text" id="dq-a2" placeholder="إجابة خاطئة 1">
-      <input type="text" id="dq-a3" placeholder="إجابة خاطئة 2">
-      <input type="text" id="dq-a4" placeholder="إجابة خاطئة 3">
-      <button onclick="saveDailyQuestion()">نشر السؤال اليومي</button>
+  <!-- Header -->
+  <header>
+    <h1 style="font-size: 1.6rem;">لوحة أدمن <span style="color:var(--accent-cyan);">VIBE Unite</span> 👑</h1>
+    <button class="btn danger" onclick="location.href='index.html'">الخروج للتطبيق الرئيسي 🚪</button>
+  </header>
+
+  <!-- Quick Stats -->
+  <div class="stats-grid">
+    <div class="glass stat-card">
+      <div>إجمالي المستخدمين</div>
+      <div id="stat-users" class="stat-num">0</div>
     </div>
-
-    <!-- 2. Arena Question -->
-    <div class="card">
-      <h3>2. إضافة سؤال لساحة الـ 1v1</h3>
-      <input type="text" id="aq-text" placeholder="نص سؤال المواجهة">
-      <input type="text" id="aq-a1" placeholder="الإجابة الصحيحة">
-      <input type="text" id="aq-a2" placeholder="إجابة خاطئة 1">
-      <input type="text" id="aq-a3" placeholder="إجابة خاطئة 2">
-      <button onclick="addArenaQuestion()">إضافة لبنك المواجهات</button>
+    <div class="glass stat-card">
+      <div>إجمالي المنشورات</div>
+      <div id="stat-posts" class="stat-num">0</div>
     </div>
-
-    <!-- 3. Broadcast System -->
-    <div class="card">
-      <h3>3. إرسال إشعار عام في الشات</h3>
-      <input type="text" id="bc-text" placeholder="اكتب التنبيه أو الإعلان...">
-      <button onclick="sendBroadcast()" style="background: #00E676; color: #000;">إرسال الإعلان</button>
+    <div class="glass stat-card">
+      <div>رسائل الشات العام</div>
+      <div id="stat-chats" class="stat-num">0</div>
     </div>
-
-    <!-- 4. Users List & Control -->
-    <div class="card">
-      <h3>4. قائمة المستخدمين والتحكم بالنواحي (XP)</h3>
-      <div id="users-list">جاري تحميل اللاعبين...</div>
+    <div class="glass stat-card">
+      <div>إجمالي النقاط بالنظام</div>
+      <div id="stat-xp" class="stat-num" style="color:var(--gold-glow)">0</div>
     </div>
   </div>
 
+  <!-- Tabs Navigation -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('users')">👥 إدارة المستخدمين والنقاط</button>
+    <button class="tab-btn" onclick="switchTab('leaderboard')">🏆 التحكم بالصدارة والترتيب</button>
+    <button class="tab-btn" onclick="switchTab('posts')">📝 إدارة المنشورات</button>
+    <button class="tab-btn" onclick="switchTab('chat')">💬 الشات العام</button>
+  </div>
+
+  <!-- TAB 1: Users Management -->
+  <div id="tab-users" class="tab-content active glass">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px;">
+      <h3>قائمة كافة المستخدمين بالنظام</h3>
+      <input type="text" id="search-user" class="input-glass" placeholder="ابحث باسم المستخدم أو اليوزرنيم..." onkeyup="filterUsers()" style="width: 280px;">
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>المستخدم</th>
+            <th>اليوزرنيم</th>
+            <th>النقاط (XP)</th>
+            <th>فرص السحب</th>
+            <th>إجراءات التحكم</th>
+          </tr>
+        </thead>
+        <tbody id="users-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: Leaderboard Management -->
+  <div id="tab-leaderboard" class="tab-content glass">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; flex-wrap:wrap; gap:10px;">
+      <div>
+        <h3>إدارة لوحة المتصدرين</h3>
+        <p style="color:var(--text-muted); font-size:0.85rem;">يمكنك إعادة ضبط الموسم أو خصم نقاط المتصدرين الحالية.</p>
+      </div>
+      <button class="btn danger" onclick="resetAllXP()">⚠️ تصفير نقاط الجميع (بدء موسم جديد)</button>
+    </div>
+
+    <div style="overflow-x: auto;">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>الترتيب</th>
+            <th>المستخدم</th>
+            <th>النقاط الحالية</th>
+            <th>حذف من الصدارة</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboard-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 3: Posts Management -->
+  <div id="tab-posts" class="tab-content glass">
+    <h3>إدارة كافة منشورات المنصة</h3>
+    <div id="posts-list" style="margin-top: 15px; display: grid; gap: 15px;"></div>
+  </div>
+
+  <!-- TAB 4: Global Chat Control -->
+  <div id="tab-chat" class="tab-content glass">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+      <h3>رسائل الشات العام</h3>
+      <button class="btn danger" onclick="clearAllChat()">مسح كل رسائل الشات العام 🧹</button>
+    </div>
+    <div id="chat-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 500px; overflow-y: auto;"></div>
+  </div>
+
   <script>
+    // 1. Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyBi1jUXrq7DMUbHFSb2JcNF93P5g0HJl9E",
       authDomain: "vibe-783f3.firebaseapp.com",
       projectId: "vibe-783f3",
       databaseURL: "https://vibe-783f3-default-rtdb.firebaseio.com"
     };
-
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
     const db = firebase.database();
 
-    function saveDailyQuestion() {
-      const q = document.getElementById('dq-text').value;
-      const a1 = document.getElementById('dq-a1').value;
-      const a2 = document.getElementById('dq-a2').value;
-      const a3 = document.getElementById('dq-a3').value;
-      const a4 = document.getElementById('dq-a4').value;
-      
-      if(!q || !a1) return alert('أدخل السؤال والإجابة الصحيحة');
-      db.ref('questions/daily').set({ q, options: [a1,a2,a3,a4].filter(x=>x), correct: a1 });
-      alert('تم نشر التحدي اليومي بنجاح!');
+    let allUsersData = {};
+
+    function showToast(m) { let t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; setTimeout(()=>t.style.display='none',3000); }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
+      event.currentTarget.classList.add('active');
     }
 
-    function addArenaQuestion() {
-      const q = document.getElementById('aq-text').value;
-      const a1 = document.getElementById('aq-a1').value;
-      const a2 = document.getElementById('aq-a2').value;
-      const a3 = document.getElementById('aq-a3').value;
-      
-      if(!q || !a1) return alert('أدخل السؤال والإجابة الصحيحة');
-      db.ref('questions/arena').push({ q, options: [a1,a2,a3].filter(x=>x), correct: a1 });
-      alert('تمت إضافة السؤال لبنك المواجهات!');
-    }
-
-    function sendBroadcast() {
-      const txt = document.getElementById('bc-text').value;
-      if(!txt) return;
-      db.ref('chat').push({
-        uid: 'admin', name: '📢 إشعار الإدارة', text: txt, avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=admin', time: Date.now()
+    // 2. Load Realtime Data & Stats
+    function initAdmin() {
+      // Users
+      db.ref('users').on('value', snap => {
+        allUsersData = snap.val() || {};
+        renderUsers(allUsersData);
+        renderLeaderboard(allUsersData);
+        
+        let userCount = 0; let totalXP = 0;
+        Object.values(allUsersData).forEach(u => {
+          userCount++;
+          totalXP += (u.xp || 0);
+        });
+        document.getElementById('stat-users').innerText = userCount;
+        document.getElementById('stat-xp').innerText = totalXP;
       });
-      alert('تم إرسال الإعلان في الشات العام!');
+
+      // Posts Count
+      db.ref('posts').on('value', snap => {
+        const posts = snap.val() || {};
+        document.getElementById('stat-posts').innerText = Object.keys(posts).length;
+        renderPosts(posts);
+      });
+
+      // Global Chat Count
+      db.ref('global_chat').on('value', snap => {
+        const msgs = snap.val() || {};
+        document.getElementById('stat-chats').innerText = Object.keys(msgs).length;
+        renderChat(msgs);
+      });
     }
 
-    // Load Users
-    db.ref('users').on('value', snap => {
-      const list = document.getElementById('users-list');
-      list.innerHTML = '';
-      snap.forEach(c => {
-        const u = c.val();
+    // Render Users Table
+    function renderUsers(users) {
+      const list = document.getElementById('users-list'); list.innerHTML = '';
+      Object.keys(users).forEach(uid => {
+        const u = users[uid];
         list.innerHTML += `
-          <div class="user-row">
+          <tr>
+            <td>
+              <div class="avatar-xs" style="background-image:url(${u.avatar})"></div>
+              <strong>${u.name || 'بدون اسم'}</strong>
+            </td>
+            <td>@${u.username || '-'}</td>
+            <td><strong style="color:var(--accent-cyan)">${u.xp || 0}</strong> 🪙</td>
+            <td>${u.drawAttempts || 0} سحبات</td>
+            <td style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn outline" onclick="editUserXP('${uid}', ${u.xp || 0})">✏️ النقاط</button>
+              <button class="btn gold" onclick="addDrawAttempt('${uid}', ${u.drawAttempts || 0})">🎰 +سحبة</button>
+              <button class="btn danger" onclick="deleteUserCompletely('${uid}', '${u.name}')">🗑️ حذف كلي</button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function filterUsers() {
+      const q = document.getElementById('search-user').value.toLowerCase();
+      const filtered = {};
+      Object.keys(allUsersData).forEach(uid => {
+        const u = allUsersData[uid];
+        if ((u.name && u.name.toLowerCase().includes(q)) || (u.username && u.username.toLowerCase().includes(q))) {
+          filtered[uid] = u;
+        }
+      });
+      renderUsers(filtered);
+    }
+
+    // Edit User XP
+    function editUserXP(uid, currentXP) {
+      const newXP = prompt("أدخل قيمة النقاط الجديد للمستخدم:", currentXP);
+      if (newXP !== null && !isNaN(newXP)) {
+        db.ref(`users/${uid}/xp`).set(parseInt(newXP)).then(() => showToast('تم تحديث النقاط بنجاح!'));
+      }
+    }
+
+    // Give Draw Attempts
+    function addDrawAttempt(uid, currentAttempts) {
+      const newAttempts = prompt("أدخل عدد فرص السحب المتاحة للمستخدم:", currentAttempts + 1);
+      if (newAttempts !== null && !isNaN(newAttempts)) {
+        db.ref(`users/${uid}/drawAttempts`).set(parseInt(newAttempts)).then(() => showToast('تم تحديث فرص السحب!'));
+      }
+    }
+
+    // Delete User Completely (Wipe all user records from DB)
+    async function deleteUserCompletely(uid, userName) {
+      if (!confirm(`⚠️ تحذير شديد: هل أنت متأكد من حذف الحساب (${userName}) بجميع بياناته بشكل نهائي؟\nسيتم مسح منشوراته، رسائله، وإشعاراته.`)) return;
+
+      // 1. Delete user node
+      await db.ref(`users/${uid}`).remove();
+
+      // 2. Delete user's notes & notifications
+      await db.ref(`notes/${uid}`).remove();
+      await db.ref(`notifications/${uid}`).remove();
+
+      // 3. Wipe user's posts
+      const postsSnap = await db.ref('posts').orderByChild('authorId').equalTo(uid).once('value');
+      postsSnap.forEach(child => { child.ref.remove(); });
+
+      // 4. Clean global chat messages
+      const chatSnap = await db.ref('global_chat').orderByChild('authorId').equalTo(uid).once('value');
+      chatSnap.forEach(child => { child.ref.remove(); });
+
+      // 5. Clean Private Chats involving user
+      const privSnap = await db.ref('private_chats').once('value');
+      privSnap.forEach(child => {
+        if (child.key.includes(uid)) { child.ref.remove(); }
+      });
+
+      showToast(`تم مسح كافة بيانات ${userName} بنجاح!`);
+    }
+
+    // Render Leaderboard & Controls
+    function renderLeaderboard(users) {
+      const board = document.getElementById('leaderboard-list'); board.innerHTML = '';
+      const sorted = Object.keys(users).map(uid => ({ uid, ...users[uid] })).sort((a, b) => (b.xp || 0) - (a.xp || 0));
+
+      let rank = 1;
+      sorted.slice(0, 15).forEach(u => {
+        board.innerHTML += `
+          <tr>
+            <td><strong style="color:${rank === 1 ? 'var(--gold-glow)' : 'var(--accent-cyan)'}">#${rank}</strong></td>
+            <td>
+              <div class="avatar-xs" style="background-image:url(${u.avatar})"></div>
+              ${u.name} ${rank === 1 ? '👑' : ''}
+            </td>
+            <td>${u.xp || 0} 🪙</td>
+            <td>
+              <button class="btn danger" style="padding:4px 10px; font-size:0.8rem;" onclick="resetSingleUserXP('${u.uid}')">صفر النقاط (إزالة من الصدارة)</button>
+            </td>
+          </tr>
+        `;
+        rank++;
+      });
+    }
+
+    function resetSingleUserXP(uid) {
+      if (confirm('تصفير نقاط هذا المستخدم لإزالته من الصدارة؟')) {
+        db.ref(`users/${uid}/xp`).set(0).then(() => showToast('تم تصفير النقاط!'));
+      }
+    }
+
+    function resetAllXP() {
+      if (confirm('⚠️ هل أنت متأكد من تصفير نقاط جميع المستخدمين لبدء أسبوع / موسم جديد؟')) {
+        db.ref('users').once('value', snap => {
+          snap.forEach(u => { db.ref(`users/${u.key}/xp`).set(0); });
+          showToast('تم تصفير نقاط المنصة بالكامل بنجاح!');
+        });
+      }
+    }
+
+    // Render Posts Management
+    function renderPosts(posts) {
+      const cont = document.getElementById('posts-list'); cont.innerHTML = '';
+      const postKeys = Object.keys(posts).reverse();
+
+      postKeys.forEach(pId => {
+        const p = posts[pId];
+        const author = allUsersData[p.authorId] || { name: 'مستخدم محذوف', avatar: '' };
+        let imgHtml = p.image ? `<br><img src="${p.image}" style="max-width:180px; border-radius:8px; margin-top:8px;">` : '';
+
+        cont.innerHTML += `
+          <div style="background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); padding:12px; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
             <div>
-              <strong>${u.name || 'بدون اسم'}</strong> (${u.xp || 0} XP)
+              <div class="avatar-xs" style="background-image:url(${author.avatar})"></div>
+              <strong>${author.name}</strong> <small style="color:var(--text-muted)">(@${author.username || 'بدون'})</small>
+              <div style="margin-top:6px; font-size:0.95rem;">${p.text || ''} ${imgHtml}</div>
             </div>
-            <button style="width:auto; padding:5px 10px; margin:0;" onclick="addXP('${c.key}', 100)">+100 XP</button>
+            <button class="btn danger" onclick="deletePost('${pId}')">🗑️ حذف البوست</button>
           </div>
         `;
       });
-    });
-
-    function addXP(uid, val) {
-      db.ref(`users/${uid}/xp`).transaction(x => (x||0) + val);
+      if (postKeys.length === 0) cont.innerHTML = '<p style="color:var(--text-muted);">لا توجد منشورات حالياً.</p>';
     }
+
+    function deletePost(postId) {
+      if (confirm('حذف هذا البوست؟')) {
+        db.ref(`posts/${postId}`).remove().then(() => showToast('تم حذف البوست!'));
+      }
+    }
+
+    // Render Global Chat Control
+    function renderChat(msgs) {
+      const cont = document.getElementById('chat-list'); cont.innerHTML = '';
+      Object.keys(msgs).forEach(mId => {
+        const m = msgs[mId];
+        const author = allUsersData[m.authorId] || { name: 'غير معروف' };
+        cont.innerHTML += `
+          <div style="background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong style="color:var(--accent-cyan); font-size:0.8rem;">${author.name}:</strong>
+              <span style="font-size:0.9rem; margin-right:8px;">${m.text}</span>
+            </div>
+            <button class="btn danger" style="padding:2px 8px; font-size:0.75rem;" onclick="deleteChatMessage('${mId}')">حذف</button>
+          </div>
+        `;
+      });
+    }
+
+    function deleteChatMessage(msgId) {
+      db.ref(`global_chat/${msgId}`).remove().then(() => showToast('تم مسح الرسالة!'));
+    }
+
+    function clearAllChat() {
+      if (confirm('هل تريد مسح كل رسائل الشات العام؟')) {
+        db.ref('global_chat').remove().then(() => showToast('تم مسح الشات العام بالكامل!'));
+      }
+    }
+
+    // Run Panel
+    window.onload = initAdmin;
   </script>
 </body>
 </html>
